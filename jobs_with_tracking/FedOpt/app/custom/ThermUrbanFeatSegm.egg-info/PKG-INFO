@@ -1,0 +1,48 @@
+Metadata-Version: 2.1
+Name: ThermUrbanFeatSegm
+Version: 0.0.1
+Summary: Thermal Urban Feature Segmentation
+Home-page: https://github.com/emvollmer/murnong_sem-segm
+Author: Elena Vollmer, Leon Klug
+Author-email: elena.vollmer@kit.edu
+License: BSD-3-Clause
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: System Administrators
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD-3-Clause License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Software Development
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Scientific/Engineering :: Image Recognition
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+# Thermal urban feature semantic segmentation
+
+Scripts for thermal urban feature detection semantic segmentation model using the [segmentation\_models repository](https://github.com/qubvel/segmentation_models). 
+UNet is used as the base and retrained on differently processed RGBT datasets with masks generated from json annotation files.
+
+Use `pip3 install -r requirements_tf-2.0.py` to install all required packages. Installation has been tested with Python 3.8 and Python 3.10. Training works with tensorflow and keras 2.10, not 2.12. For reference, the issue with 2.12 is discussed in [this issue](https://github.com/tensorflow/tensorflow/issues/58681).
+
+---
+
+**NOTE**
+
+For energy monitoring to work properly in combination with module calls, perun currently has to be installed from a [forked repository](https://github.com/emvollmer/perun.git).
+
+---
+
+### Repository structure
+
+```
+.
++-- scripts
+|   +-- segm_models     ------> scripts for training, evaluating and inferring with segmentation model(s)
+|   +-- setup           ------> scripts for general setup and preprocessing
++-- README.md
++-- requirements_tf2-10.txt 
++-- setup.py            ------> script for setting up package
++-- __init__.py
+```
