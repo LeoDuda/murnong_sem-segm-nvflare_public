@@ -1,0 +1,17 @@
+README.md
+setup.py
+ThermUrbanFeatSegm.egg-info/PKG-INFO
+ThermUrbanFeatSegm.egg-info/SOURCES.txt
+ThermUrbanFeatSegm.egg-info/dependency_links.txt
+ThermUrbanFeatSegm.egg-info/requires.txt
+ThermUrbanFeatSegm.egg-info/top_level.txt
+scripts/__init__.py
+scripts/configuration.py
+scripts/segm_models/__init__.py
+scripts/segm_models/_utils.py
+scripts/segm_models/evaluate_UNet.py
+scripts/segm_models/infer_UNet.py
+scripts/segm_models/train_UNet.py
+scripts/setup/__init__.py
+scripts/setup/generate_segm_masks.py
+scripts/setup/train_test_split.py
