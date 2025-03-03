@@ -53,7 +53,7 @@ For using the code with multiple real world clients by using Provisioning, pleas
     ├── SCAFFOLD                <- config files and main code for using scaffold as FL algorithm
     ├── Swarm_Learning          <- config files and main code for using Swarm Learning as a workflow
     ├── Cyclic_Weight_transfer_Centralized         <- config files and main code for using Cyclic Learning with a server for administration involved
-    └── Cyclic_Weight_transfer_Centralized              <- config files and main code for using Cyclic Learning without a server as administrator involved
+    └── Cyclic_Weight_transfer_Decentralized       <- config files and main code for using Cyclic Learning without a server as administrator involved
 ```
 
 # References
@@ -68,4 +68,4 @@ Theoretical references:
 
 Technical references:
  - NVFlare GitHub Repository:  https://github.com/NVIDIA/NVFlare
- - NVFlare Documentation https://nvflare.readthedocs.io/en/2.3.0/
+ - NVFlare Documentation https://nvflare.readthedocs.io/en/2.5.0/
