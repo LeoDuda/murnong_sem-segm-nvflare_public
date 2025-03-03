@@ -1,0 +1,195 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+import time
+from typing import Dict
+import numpy as np
+import tensorflow as tf
+
+from nvflare.app_common.abstract.fl_model import FLModel, ParamsType
+from nvflare.app_common.workflows.fedavg import FedAvg
+from nvflare.security.logging import secure_format_exception
+import os
+os.environ["SM_FRAMEWORK"] = "tf.keras"
+import segmentation_models as sm
+sm.set_framework('tf.keras')
+
+class FedOpt(FedAvg):
+    def __init__(
+        self,
+        *args,
+        optimizer_args: dict = {
+            "path": "tensorflow.keras.optimizers.SGD",
+            "args": {"learning_rate": 1.0, "momentum": 0.6},
+        },
+        lr_scheduler_args: dict = {
+            "path": "tensorflow.keras.optimizers.schedules.CosineDecay",
+            "args": {"initial_learning_rate": 1.0, "decay_steps": None, "alpha": 0.9},
+        },
+        **kwargs,
+    ):
+        """Implement the FedOpt algorithm. Based on FedAvg ModelController.
+
+        The algorithm is proposed in Reddi, Sashank, et al. "Adaptive federated optimization." arXiv preprint arXiv:2003.00295 (2020).
+        After each round, update the global model's trainable variables using the specified optimizer and learning rate scheduler,
+        in this case, SGD with momentum & CosineDecay.
+
+        Args:
+            optimizer_args: dictionary of optimizer arguments, with keys of 'optimizer_path' and 'args.
+            lr_scheduler_args: dictionary of server-side learning rate scheduler arguments, with keys of 'lr_scheduler_path' and 'args.
+
+        Raises:
+            TypeError: when any of input arguments does not have correct type
+        """
+        super().__init__(*args, **kwargs)
+
+        self.optimizer_args = optimizer_args
+        self.lr_scheduler_args = lr_scheduler_args
+
+        # Set "decay_steps" arg to num_rounds
+        if lr_scheduler_args["args"]["decay_steps"] is None:
+            lr_scheduler_args["args"]["decay_steps"] = self.num_rounds
+
+        self.keras_model = None
+        self.optimizer = None
+        self.lr_scheduler = None
+        self.prev_model_diff = None
+
+
+    def run(self):
+        """
+        Override run method to add set-up for FedOpt specific optimizer
+        and LR scheduler.
+        """
+        # set up optimizer
+        try:
+            if "args" not in self.optimizer_args:
+                self.optimizer_args["args"] = {}
+            self.optimizer = self.build_component(self.optimizer_args)
+        except Exception as e:
+            error_msg = f"Exception while constructing optimizer: {secure_format_exception(e)}"
+            self.exception(error_msg)
+            self.panic(error_msg)
+            return
+
+        # set up lr scheduler
+        try:
+            if "args" not in self.lr_scheduler_args:
+                self.lr_scheduler_args["args"] = {}
+            self.lr_scheduler = self.build_component(self.lr_scheduler_args)
+            self.optimizer.learning_rate = self.lr_scheduler
+        except Exception as e:
+            error_msg = f"Exception while constructing lr_scheduler: {secure_format_exception(e)}"
+            self.exception(error_msg)
+            self.panic(error_msg)
+            return
+
+        super().run()
+
+    def _to_tf_params_list(self, params: Dict, negate: bool = False):
+        """
+        Convert FLModel params to a list of tf.Variables.
+        Optionally negate the values of weights, needed
+        to apply gradients.
+        """
+        tf_params_list = []
+        for k, v in params.items():
+            if negate:
+                v = -1 * v
+            tf_params_list.append(tf.Variable(v))
+        return tf_params_list
+
+    def update_model(self, global_model: FLModel, aggr_result: FLModel):
+            """
+            Override the default version of update_model
+            to perform update with Keras Optimizer on the
+            global model stored in memory in persistor, instead of
+            creating new temporary model on-the-fly.
+
+            Creating a new model would not work for Keras
+            Optimizers, since an optimizer is bind to
+            specific set of Variables.
+
+            """
+            print('we are in the new version')
+            print(f'the agrr have the lenght {len(aggr_result.params)}')
+            print(f'the  global_model have the lenght {len( global_model.params)}')
+            global_model_tf = self.persistor.model
+     
+           # for layer in  global_model_tf.layers:
+            #    if isinstance(layer, tf.keras.layers.BatchNormalization):
+             #       layer.trainable = False
+                  
+            global_params = global_model_tf.trainable_variables
+            num_trainable_weights = len(global_params)
+            print(f'the num_trainable_weights {num_trainable_weights}')
+
+            model_diff_params = {}
+            
+
+            w_idx = 0
+            
+            print(f'the type is {aggr_result.params_type}')
+          
+            for key, param in global_model.params.items():
+                if w_idx >= num_trainable_weights:
+                    break
+
+               #
+                if param.shape == global_params[w_idx].shape:
+                    print(f'the key {key} is in model_diff')
+                    model_diff_params[key] = aggr_result.params[key]
+                    w_idx += 1
+
+            model_diff = self._to_tf_params_list(model_diff_params, negate=True)
+                   
+            start = time.time()
+
+            self.optimizer.apply_gradients(zip(model_diff, global_params))
+            secs = time.time() - start
+
+            start = time.time()
+            weights = global_model_tf.get_weights()
+            print(f'the weights {len(weights)}')
+            
+
+            new_weights = {}
+            for w_idx, key in enumerate(global_model.params):
+                if key in model_diff_params:
+                    #new_weights[key] = weights[w_idx]
+                    if np.array_equal( weights[w_idx], global_model.params[key]):
+                            print(f"Arrays are equal in shape and content for the key {key}!")
+                            new_weights[key] =  global_model.params[key] + aggr_result.params[key]
+                    else:
+                        new_weights[key] = weights[w_idx]
+                        
+
+                elif global_model.params[key].shape == aggr_result.params[key].shape:
+                         print(f'the key is not in model_diff {key}')
+                         new_weights[key] =  global_model.params[key] + aggr_result.params[key]#(
+                 
+            secs_detach = time.time() - start
+            self.info(
+                f"FedOpt ({type(self.optimizer)}) server model update "
+                f"round {self.current_round}, "
+                f"{type(self.lr_scheduler)} "
+                f"lr: {self.optimizer.learning_rate(self.optimizer.iterations).numpy()}, "#
+                f"update: {secs} secs., detach: {secs_detach} secs.",
+            )
+
+            global_model.params =  new_weights
+            global_model.meta = aggr_result.meta
+
+            return global_model
