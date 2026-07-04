@@ -41,11 +41,17 @@ After running the code the folder `JOB_workspace` will be created with different
 
 For using the code with multiple real world clients by using Provisioning, please refer to https://nvflare.readthedocs.io/en/main/programming_guide/provisioning_system.html#provisioning
 
+# Provision a client on an HPC System with Slurm
+To start a client on an HPC System using Slurm Workload Manager you need to make use of the Provisioning Feature of NVFlare and adjust the sub_start.sh manually to your needs. This is then to be submitted as a job to your HPC System. An example is given with `sub_start.sh`. 
+This file usually is stored in workspace/example_project/site-1/startup/
+
 # Structure of this project
 
 ```
 ├── README.md                   <- The top-level README for developers using this project
 ├── jobs_with_perun             <- Different workflows witht the option of resource tracking available
+├── requirements.txt            <- Necessary packages
+├── sub_start.sh                <- Example on how to start a client as a Slurm Job
 └── jobs                        <- Folder containing different workflows for without the trackinf of system resources available
     ├── FedAvg                  <- config files and main code for using fedavg as FL algorithm
     ├── FedProx                 <- config files and main code for using fedprox as FL algorithm
