@@ -8,9 +8,6 @@ module load devel/cuda/11.8
 
 source myEnv/bin/activate
 source .env
-#pip install tensorflow[and-cuda]==2.10.0
-#pip install protobuf==3.20.0
-
 
 
 nvidia-smi --list-gpus
@@ -20,20 +17,12 @@ python tf_list_gpus.py
 export TF_FORCE_GPU_ALLOW_GROWTH=true && export TF_GPU_ALLOCATOR=cuda_malloc_asyncp
 
 
-
-
 SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
 DIR= "$(dirname "$SCRIPT_PATH" )"
 DIR=$(pwd)/workspace/secure_project/prod_01/site-1/startup/
 echo "WORKSPACE set to $DIR/.." 
 mkdir -p $DIR/../transfer
 export PYTHONPATH=$PYTHONPATH
-echo "PYTHONPATH is $PYTHONPATH"
-#DIR="$(pwd)/workspace/secure_project/prod_01/site-2/startup/"
-
-echo "WORKSPACE set to $DIR/.."
-mkdir -p $DIR/../transfer
-export PYTHONPATH=/local/custom:$PYTHONPATH
 echo "PYTHONPATH is $PYTHONPATH"
 
 SECONDS=0
